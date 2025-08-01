@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using WhatsApp.Common;
 using WhatsApp.Entity.Models;
 using WhatsApp.Services.Dtos.Account;
+using WhatsApp.Services.Services;
 
 namespace WhatsApp.Services.Repositorys.Account
 {
@@ -10,10 +11,12 @@ namespace WhatsApp.Services.Repositorys.Account
     {
         private readonly UserManager<RegisterUsers> _userManager;
         private readonly IValidator<RegisterUserRequestDto> _registerValidator;
-        public AccountRepository(UserManager<RegisterUsers> userManager, IValidator<RegisterUserRequestDto> registerValidator)
+        private readonly ITokenService _tokenService;
+        public AccountRepository(UserManager<RegisterUsers> userManager, IValidator<RegisterUserRequestDto> registerValidator, ITokenService tokenService)
         {
             _userManager = userManager;
             _registerValidator = registerValidator;
+            _tokenService = tokenService;
         }
         public async Task<Result<UserInfoResponseDto>> AuthenticateAsync(UserInfoRequestDto dto)
         {
@@ -28,11 +31,16 @@ namespace WhatsApp.Services.Repositorys.Account
                 return result.AddError("Invalid credentials.", ResultTypes.InvalidData);
 
             // Generate token or return basic user info
+
+            var token =  _tokenService.CreateToken(user);
             var response = new UserInfoResponseDto
             {
                 Email = user.Email,
                 Name = user.Name,
                 Id = user.Id,
+                PhoneNumber = user.PhoneNumber,
+                UserName = user.UserName,
+                Token = token
 
             };
 
@@ -61,7 +69,7 @@ namespace WhatsApp.Services.Repositorys.Account
 
             var user = new RegisterUsers
             {
-                UserName = dto.Email,
+                UserName = dto.UserName,
                 Email = dto.Email,
                 Name = dto.Name,
                 PhoneNumber = dto.PhoneNumber
